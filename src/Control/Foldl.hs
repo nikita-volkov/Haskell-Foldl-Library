@@ -101,6 +101,7 @@ module Control.Foldl (
     , hoists
     , duplicateM
     , _Fold1
+    , uniquely
     , premap
     , premapM
     , Handler
@@ -924,6 +925,22 @@ _Fold1 step = Fold step_ Nothing' lazy
     step_ mx a = Just' (case mx of
         Nothing' -> a
         Just' x -> step x a)
+
+{-| Update a fold to ignore the duplicate input values.
+-}
+uniquely :: Ord a => Fold a b -> Fold a b
+uniquely (Fold step1 begin1 done1) =
+  Fold step2 begin2 done2
+  where
+    step2 (Pair a b) c =
+      if Set.member c a
+        then Pair a b
+        else Pair (Set.insert c a) (step1 b c)
+    begin2 =
+      Pair Set.empty begin1
+    done2 (Pair _ a) =
+      done1 a
+{-# INLINABLE uniquely #-}
 
 {-| @(premap f folder)@ returns a new 'Fold' where f is applied at each step
 
